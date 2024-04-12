@@ -1,0 +1,35 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.json]
+indent_size = 2
+
+[{*.yaml,*.yml}]
+indent_size = 2
+max_line_length = 200
+insert_final_newline = true
+ij_yaml_indent_sequence_value = true
+
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2
+ij_markdown_format_tables = true
+ij_markdown_wrap_text_if_long = true
+ij_markdown_wrap_text_inside_blockquotes = true
+ij_markdown_indent_size = 4
+
+[*.java]
+indent_size = 4
+insert_final_newline = true
+ij_java_if_brace_force = always
+ij_java_for_brace_force = always
+ij_java_while_brace_force = always
+ij_java_do_while_brace_force = always
+ij_java_doc_do_not_wrap_if_one_line = false
