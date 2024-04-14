@@ -2,7 +2,6 @@ package de.chrfritz.keycloak.kubernetes.authenticator.impl;
 
 import jakarta.ws.rs.core.Response;
 import lombok.Getter;
-import org.keycloak.authentication.AuthenticationFlowError;
 import org.keycloak.authentication.ClientAuthenticationFlowContext;
 import org.keycloak.authentication.authenticators.client.ClientAuthUtil;
 import org.keycloak.authentication.authenticators.client.JWTClientValidator;
@@ -10,9 +9,20 @@ import org.keycloak.common.util.Time;
 import org.keycloak.models.ClientModel;
 import org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 
+import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
+import static org.keycloak.authentication.AuthenticationFlowError.CLIENT_DISABLED;
+import static org.keycloak.authentication.AuthenticationFlowError.CLIENT_NOT_FOUND;
+
+/**
+ * Extends the existing {@link JWTClientValidator} for validating kubernetes service account token.
+ * <p>
+ * It expects that the description of the expected client contains at least one line that matches the subject of the
+ * token, followed by an '@' followed by the issuer of the token.
+ */
 @Getter
 public class ExtendedJwtClientValidator extends JWTClientValidator {
 
@@ -32,7 +42,7 @@ public class ExtendedJwtClientValidator extends JWTClientValidator {
 
         String serviceAccount = getToken().getSubject();
         if (serviceAccount == null) {
-            throw new RuntimeException("Can't identify client. Subject missing on JWT token");
+            throw new TokenValidationException("Can't identify client. Subject missing on JWT token");
         }
 
         Optional<ClientModel> clientOptional = getRealm().getClientsStream()
@@ -40,7 +50,7 @@ public class ExtendedJwtClientValidator extends JWTClientValidator {
             .findFirst();
 
         if (clientOptional.isEmpty()) {
-            getContext().failure(AuthenticationFlowError.CLIENT_NOT_FOUND, null);
+            getContext().failure(CLIENT_NOT_FOUND, null);
             return false;
         }
 
@@ -48,7 +58,7 @@ public class ExtendedJwtClientValidator extends JWTClientValidator {
         getContext().setClient(client);
 
         if (!client.isEnabled()) {
-            getContext().failure(AuthenticationFlowError.CLIENT_DISABLED, null);
+            getContext().failure(CLIENT_DISABLED, null);
             return false;
         }
 
@@ -56,7 +66,9 @@ public class ExtendedJwtClientValidator extends JWTClientValidator {
     }
 
     private boolean requestedClientPredicate(ClientModel c) {
-        return Objects.equals(c.getDescription(), getToken().getSubject() + "@" + getToken().getIssuer());
+        String expectedClientIssuerLine = getToken().getSubject() + "@" + getToken().getIssuer();
+        return Arrays.asList(c.getDescription().split("\r\n|\n|\r"))
+            .contains(expectedClientIssuerLine);
     }
 
     @Override
@@ -69,15 +81,15 @@ public class ExtendedJwtClientValidator extends JWTClientValidator {
         }
 
         String expectedSignatureAlg = OIDCAdvancedConfigWrapper.fromClientModel(client).getTokenEndpointAuthSigningAlg();
-        if (getJws().getHeader().getAlgorithm() == null || getJws().getHeader().getAlgorithm().name() == null) {
-            Response challengeResponse = ClientAuthUtil.errorResponse(Response.Status.BAD_REQUEST.getStatusCode(), "invalid_client", "invalid signature algorithm");
+        if (getJws().getHeader().getAlgorithm() == null) {
+            Response challengeResponse = ClientAuthUtil.errorResponse(BAD_REQUEST.getStatusCode(), "invalid_client", "invalid signature algorithm");
             getContext().challenge(challengeResponse);
             return false;
         }
 
         String actualSignatureAlg = getJws().getHeader().getAlgorithm().name();
         if (expectedSignatureAlg != null && !Objects.equals(expectedSignatureAlg, actualSignatureAlg)) {
-            Response challengeResponse = ClientAuthUtil.errorResponse(Response.Status.BAD_REQUEST.getStatusCode(), "invalid_client", "invalid signature algorithm");
+            Response challengeResponse = ClientAuthUtil.errorResponse(BAD_REQUEST.getStatusCode(), "invalid_client", "invalid signature algorithm");
             getContext().challenge(challengeResponse);
             return false;
         }
@@ -103,12 +115,12 @@ public class ExtendedJwtClientValidator extends JWTClientValidator {
         }
 
         if (!getToken().isActive()) {
-            throw new RuntimeException("Token is not active");
+            throw new TokenValidationException("Token is not active");
         }
 
         // KEYCLOAK-2986, token-timeout or token-expiration in keycloak.json might not be used
         if (getToken().getExp() == 0 && getToken().getIat() + 10 < getCurrentTime()) {
-            throw new RuntimeException("Token is not active");
+            throw new TokenValidationException("Token is not active");
         }
 
         // disable check for token id as kubernetes do not write any ids into the token.

@@ -1,7 +1,6 @@
 package de.chrfritz.keycloak.kubernetes.authenticator.impl;
 
 import jakarta.ws.rs.core.Response;
-import org.keycloak.OAuthErrorException;
 import org.keycloak.authentication.AuthenticationFlowError;
 import org.keycloak.authentication.ClientAuthenticationFlowContext;
 import org.keycloak.authentication.authenticators.client.AbstractClientAuthenticator;
@@ -11,7 +10,6 @@ import org.keycloak.keys.loader.PublicKeyStorageManager;
 import org.keycloak.models.AuthenticationExecutionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.RealmModel;
-import org.keycloak.protocol.oidc.OIDCConfigAttributes;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.protocol.oidc.OIDCLoginProtocolService;
 import org.keycloak.protocol.oidc.grants.ciba.CibaGrantType;
@@ -24,6 +22,31 @@ import org.keycloak.services.Urls;
 import java.security.PublicKey;
 import java.util.*;
 
+import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
+import static org.keycloak.OAuthErrorException.INVALID_CLIENT;
+import static org.keycloak.authentication.AuthenticationFlowError.CLIENT_CREDENTIALS_SETUP_REQUIRED;
+
+/**
+ * {@link org.keycloak.authentication.ClientAuthenticator} that authenticates clients by tokens that were issued for
+ * kubernetes service accounts.
+ * <p>
+ * The kubernetes api server issues jwt token for service accounts. These token can be used either to authenticate the
+ * pods using this service account to access the kubernetes api token or other services which are specified in the
+ * audience.
+ * <p>
+ * Configuring the specific audience for this keycloak instance it is possible to use the kubernetes service account
+ * token to authenticate pods as keycloak clients.
+ * <p>
+ * The way how this client authenticator expects the incoming request is described in <a
+ * href="https://www.rfc-editor.org/rfc/rfc7523.html#section-2.2">RFC 7523, Section 2.2. Using JWTs for Client
+ * Authentication</a>.
+ *
+ * @see <a
+ * href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#serviceaccount-token-volume-projection">ServiceAccount
+ * token volume projection</a>
+ * @see <a href="https://www.rfc-editor.org/info/rfc7523">RFC 7523: JSON Web Token (JWT) Profile for OAuth 2.0 Client
+ * Authentication and Authorization Grants</a>
+ */
 public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
     public static final String PROVIDER_ID = "kubernetes-jwt";
 
@@ -56,24 +79,17 @@ public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
                 return;
             }
 
-            boolean signatureValid;
-            try {
-                JsonWebToken jwt = context.getSession().tokens().decodeClientJWT(clientAssertion, client, JsonWebToken.class);
-                signatureValid = jwt != null;
-            } catch (RuntimeException e) {
-                Throwable cause = e.getCause() != null ? e.getCause() : e;
-                throw new RuntimeException("Signature on JWT token failed validation", cause);
-            }
-            if (!signatureValid) {
-                throw new RuntimeException("Signature on JWT token failed validation");
+            if (!isTokenSignatureValid(context, clientAssertion, client)) {
+                throw new TokenValidationException("Signature on JWT token failed validation");
             }
 
             // Allow both "issuer" or "token-endpoint" as audience
             List<String> expectedAudiences = getExpectedAudiences(context, realm);
-
             if (!token.hasAnyAudience(expectedAudiences)) {
-                throw new RuntimeException("Token audience doesn't match domain. Expected audiences are any of " + expectedAudiences
-                    + " but audience from token is '" + Arrays.asList(token.getAudience()) + "'");
+                throw new TokenValidationException(
+                    "Token audience doesn't match domain. Expected audiences are any of " + expectedAudiences
+                        + " but audience from token is '" + Arrays.asList(token.getAudience()) + "'"
+                );
             }
 
             validator.validateToken();
@@ -82,16 +98,41 @@ public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
             context.success();
         } catch (Exception e) {
             ServicesLogger.LOGGER.errorValidatingAssertion(e);
-            Response challengeResponse = ClientAuthUtil.errorResponse(Response.Status.BAD_REQUEST.getStatusCode(), OAuthErrorException.INVALID_CLIENT, "Client authentication with signed JWT failed: " + e.getMessage());
+
+            Response challengeResponse = ClientAuthUtil.errorResponse(
+                BAD_REQUEST.getStatusCode(),
+                INVALID_CLIENT,
+                "Client authentication with signed JWT failed: " + e.getMessage()
+            );
             context.failure(AuthenticationFlowError.INVALID_CLIENT_CREDENTIALS, challengeResponse);
         }
     }
 
-    protected PublicKey getSignatureValidationKey(ClientModel client, ClientAuthenticationFlowContext context, JWSInput jws) {
+    /**
+     * Check that the token signature is valid against the found client.
+     *
+     * @param context         The context of the current client authentication flow.
+     * @param clientAssertion The actual jwt token which were sent within the client assertation parameter.
+     * @param client          The found client model.
+     * @return true if the signature is valid, false otherwise.
+     */
+    private static boolean isTokenSignatureValid(ClientAuthenticationFlowContext context, String clientAssertion, ClientModel client) {
+        try {
+            JsonWebToken jwt = context.getSession()
+                .tokens()
+                .decodeClientJWT(clientAssertion, client, JsonWebToken.class);
+            return jwt != null;
+        } catch (RuntimeException e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            throw new TokenValidationException("Signature on JWT token failed validation", cause);
+        }
+    }
+
+    protected static PublicKey getSignatureValidationKey(ClientModel client, ClientAuthenticationFlowContext context, JWSInput jws) {
         PublicKey publicKey = PublicKeyStorageManager.getClientPublicKey(context.getSession(), client, jws);
         if (publicKey == null) {
-            Response challengeResponse = ClientAuthUtil.errorResponse(Response.Status.BAD_REQUEST.getStatusCode(), OAuthErrorException.INVALID_CLIENT, "Unable to load public key");
-            context.failure(AuthenticationFlowError.CLIENT_CREDENTIALS_SETUP_REQUIRED, challengeResponse);
+            Response challengeResponse = ClientAuthUtil.errorResponse(BAD_REQUEST.getStatusCode(), INVALID_CLIENT, "Unable to load public key");
+            context.failure(CLIENT_CREDENTIALS_SETUP_REQUIRED, challengeResponse);
             return null;
         } else {
             return publicKey;
@@ -120,34 +161,12 @@ public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
 
     @Override
     public List<ProviderConfigProperty> getConfigPropertiesPerClient() {
-        // This impl doesn't use generic screen in admin console, but has its own screen. So no need to return anything here
-        return List.of(
-            new ProviderConfigProperty("issuer", "Issuer",
-                "The expected issuer of valid tokens", ProviderConfigProperty.STRING_TYPE, "", false, true),
-            new ProviderConfigProperty("namespace", "Kubernetes Namespace",
-                "The expected namespace for which the service account token was issued", ProviderConfigProperty.STRING_TYPE, "", false, true),
-            new ProviderConfigProperty("serviceAccount", "Service Account Name",
-                "The name of the service account.", ProviderConfigProperty.STRING_TYPE, "", false, true)
-        );
+        return List.of();
     }
 
     @Override
     public Map<String, Object> getAdapterConfiguration(ClientModel client) {
-        Map<String, Object> props = new HashMap<>();
-        props.put("client-keystore-file", "REPLACE WITH THE LOCATION OF YOUR KEYSTORE FILE");
-        props.put("client-keystore-type", "jks");
-        props.put("client-keystore-password", "REPLACE WITH THE KEYSTORE PASSWORD");
-        props.put("client-key-password", "REPLACE WITH THE KEY PASSWORD IN KEYSTORE");
-        props.put("client-key-alias", client.getClientId());
-        props.put("token-timeout", 10);
-        String algorithm = client.getAttribute(OIDCConfigAttributes.TOKEN_ENDPOINT_AUTH_SIGNING_ALG);
-        if (algorithm != null) {
-            props.put("algorithm", algorithm);
-        }
-
-        Map<String, Object> config = new HashMap<>();
-        config.put("jwt", props);
-        return config;
+        return new HashMap<>();
     }
 
     @Override
@@ -168,13 +187,18 @@ public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
 
     private List<String> getExpectedAudiences(ClientAuthenticationFlowContext context, RealmModel realm) {
         String issuerUrl = Urls.realmIssuer(context.getUriInfo().getBaseUri(), realm.getName());
-        String tokenUrl = OIDCLoginProtocolService.tokenUrl(context.getUriInfo().getBaseUriBuilder()).build(realm.getName()).toString();
-        String parEndpointUrl = ParEndpoint.parUrl(context.getUriInfo().getBaseUriBuilder()).build(realm.getName()).toString();
-        List<String> expectedAudiences = new ArrayList<>(Arrays.asList(issuerUrl, tokenUrl, parEndpointUrl));
-        String backchannelAuthenticationUrl = CibaGrantType.authorizationUrl(context.getUriInfo().getBaseUriBuilder()).build(realm.getName()).toString();
-        expectedAudiences.add(backchannelAuthenticationUrl);
 
-        return expectedAudiences;
+        String tokenUrl = OIDCLoginProtocolService.tokenUrl(context.getUriInfo().getBaseUriBuilder())
+            .build(realm.getName())
+            .toString();
+        String parEndpointUrl = ParEndpoint.parUrl(context.getUriInfo().getBaseUriBuilder())
+            .build(realm.getName())
+            .toString();
+        String backchannelAuthenticationUrl = CibaGrantType.authorizationUrl(context.getUriInfo().getBaseUriBuilder())
+            .build(realm.getName())
+            .toString();
+
+        return List.of(issuerUrl, tokenUrl, parEndpointUrl, backchannelAuthenticationUrl);
     }
 
     @Override
