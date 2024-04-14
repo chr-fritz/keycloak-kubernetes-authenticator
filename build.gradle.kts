@@ -1,7 +1,7 @@
 plugins {
     `java-library`
 }
-val keycloakVersion = "24.0.1"
+val keycloakVersion = "24.0.2"
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
