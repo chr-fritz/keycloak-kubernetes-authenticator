@@ -1,6 +1,10 @@
 name: Build
 
-on: [ push ]
+on:
+  - push
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -20,3 +24,10 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew build
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        if: env.SONAR_TOKEN != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
