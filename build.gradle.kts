@@ -1,7 +1,7 @@
 plugins {
     `java-library`
 }
-val keycloakVersion = "24.0.2"
+val keycloakVersion = "24.0.3"
 val lombokVersion = "1.18.32"
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -12,10 +12,14 @@ dependencies {
     implementation(platform("org.keycloak.bom:keycloak-adapter-bom:${keycloakVersion}"))
     implementation(platform("org.keycloak.bom:keycloak-misc-bom:${keycloakVersion}"))
     implementation(platform("org.keycloak.bom:keycloak-spi-bom:${keycloakVersion}"))
-    compileOnly("org.keycloak:keycloak-server-spi:${keycloakVersion}")
-    compileOnly("org.keycloak:keycloak-server-spi-private:${keycloakVersion}")
-    compileOnly("org.keycloak:keycloak-services:${keycloakVersion}")
+    compileOnlyApi("org.keycloak:keycloak-server-spi:${keycloakVersion}")
+    compileOnlyApi("org.keycloak:keycloak-server-spi-private:${keycloakVersion}")
+    implementation("org.keycloak:keycloak-services:${keycloakVersion}")
+
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.11.0")
+    testImplementation("org.assertj:assertj-core:3.25.3")
+
     compileOnly("org.projectlombok:lombok:${lombokVersion}")
     annotationProcessor("org.projectlombok:lombok:${lombokVersion}")
 }
