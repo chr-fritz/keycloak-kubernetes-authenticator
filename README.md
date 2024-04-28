@@ -1,4 +1,6 @@
 [![Build](https://github.com/chr-fritz/keycloak-kubernetes-authenticator/actions/workflows/build.yaml/badge.svg?branch=main)](https://github.com/chr-fritz/keycloak-kubernetes-authenticator/actions/workflows/build.yaml)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=chr-fritz_keycloak-kubernetes-authenticator&metric=coverage)](https://sonarcloud.io/dashboard?id=chr-fritz_keycloak-kubernetes-authenticator)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=chr-fritz_keycloak-kubernetes-authenticator&metric=alert_status)](https://sonarcloud.io/dashboard?id=chr-fritz_keycloak-kubernetes-authenticator)
 
 # Keycloak Kubernetes Client Authenticator
 
