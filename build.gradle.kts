@@ -19,6 +19,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testImplementation("org.mockito:mockito-junit-jupiter:5.11.0")
     testImplementation("org.assertj:assertj-core:3.25.3")
+    testImplementation("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0")
+    testImplementation("org.glassfish.jersey.core:jersey-common:3.1.6")
 
     compileOnly("org.projectlombok:lombok:${lombokVersion}")
     annotationProcessor("org.projectlombok:lombok:${lombokVersion}")
