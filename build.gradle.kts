@@ -5,13 +5,21 @@ plugins {
     id("com.palantir.git-version") version "3.0.0" // to compute the project version from Git tags and hashes
     id("org.sonarqube") version "5.0.0.4638"
 }
-val keycloakVersion = "24.0.3"
-val lombokVersion = "1.18.32"
+
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
 }
 
+val keycloakVersion = "24.0.3"
+val lombokVersion = "1.18.32"
+val guavaVersion = "33.1.0-jre"
+val jUnitJupiterVersion = "5.10.2"
+val mockitoJunitVersion = "5.11.0"
+val assertJVersion = "3.25.3"
+val jakartaWsRsVersion = "3.1.0"
+val jerseyVersion = "3.1.6"
+val commonsCodecVersion = "1.17.0"
 dependencies {
     implementation(platform("org.keycloak.bom:keycloak-adapter-bom:${keycloakVersion}"))
     implementation(platform("org.keycloak.bom:keycloak-misc-bom:${keycloakVersion}"))
@@ -19,12 +27,14 @@ dependencies {
     compileOnlyApi("org.keycloak:keycloak-server-spi:${keycloakVersion}")
     compileOnlyApi("org.keycloak:keycloak-server-spi-private:${keycloakVersion}")
     implementation("org.keycloak:keycloak-services:${keycloakVersion}")
+    compileOnlyApi("com.google.guava:guava:${guavaVersion}")
+    compileOnlyApi("commons-codec:commons-codec:${commonsCodecVersion}")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
-    testImplementation("org.mockito:mockito-junit-jupiter:5.11.0")
-    testImplementation("org.assertj:assertj-core:3.25.3")
-    testImplementation("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0")
-    testImplementation("org.glassfish.jersey.core:jersey-common:3.1.6")
+    testImplementation("org.junit.jupiter:junit-jupiter:${jUnitJupiterVersion}")
+    testImplementation("org.mockito:mockito-junit-jupiter:${mockitoJunitVersion}")
+    testImplementation("org.assertj:assertj-core:${assertJVersion}")
+    testImplementation("jakarta.ws.rs:jakarta.ws.rs-api:${jakartaWsRsVersion}")
+    testImplementation("org.glassfish.jersey.core:jersey-common:${jerseyVersion}")
 
     compileOnly("org.projectlombok:lombok:${lombokVersion}")
     annotationProcessor("org.projectlombok:lombok:${lombokVersion}")
