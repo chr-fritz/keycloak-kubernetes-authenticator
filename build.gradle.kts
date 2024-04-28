@@ -66,6 +66,7 @@ sonar {
     properties {
         property("sonar.projectKey", "chr-fritz_keycloak-kubernetes-authenticator")
         property("sonar.organization", "chr-fritz")
+        property("sonar.host.url", "https://sonarcloud.io")
     }
 }
 
