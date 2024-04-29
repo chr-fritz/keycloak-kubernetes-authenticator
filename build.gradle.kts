@@ -62,6 +62,10 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
+tasks.withType<AbstractArchiveTask> {
+    setProperty("archiveFileName", "keycloak-kubernetes-authenticator.jar")
+}
+
 sonar {
     properties {
         property("sonar.projectKey", "chr-fritz_keycloak-kubernetes-authenticator")
