@@ -27,8 +27,11 @@ dependencies {
     compileOnlyApi("org.keycloak:keycloak-server-spi:${keycloakVersion}")
     compileOnlyApi("org.keycloak:keycloak-server-spi-private:${keycloakVersion}")
     implementation("org.keycloak:keycloak-services:${keycloakVersion}")
-    compileOnlyApi("com.google.guava:guava:${guavaVersion}")
-    compileOnlyApi("commons-codec:commons-codec:${commonsCodecVersion}")
+
+    constraints {
+        implementation("com.google.guava:guava:${guavaVersion}")
+        implementation("commons-codec:commons-codec:${commonsCodecVersion}")
+    }
 
     testImplementation("org.junit.jupiter:junit-jupiter:${jUnitJupiterVersion}")
     testImplementation("org.mockito:mockito-junit-jupiter:${mockitoJunitVersion}")
