@@ -1,3 +1,5 @@
+import java.net.URLEncoder
+
 plugins {
     jacoco
     `java-library`
@@ -94,7 +96,12 @@ publishing {
         maven {
             name = "GitHubPackages"
             url =
-                uri("https://maven.pkg.github.com/" + System.getenv("GITHUB_ACTOR") + "/keycloak-kubernetes-authenticator")
+                uri(
+                    "https://maven.pkg.github.com/" + URLEncoder.encode(
+                        System.getenv("GITHUB_ACTOR"),
+                        "UTF-8"
+                    ) + "/keycloak-kubernetes-authenticator"
+                )
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = System.getenv("GITHUB_TOKEN")
