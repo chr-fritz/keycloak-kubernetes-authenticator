@@ -34,9 +34,10 @@ class KubernetesClientAuthenticatorTest {
     @Test
     void test_AuthenticateClient_successfully() throws URISyntaxException {
         // given
+        ClientModel clientNoDescription = mockClient("dummy", null, true);
         ClientModel client = mockClient("dummy", "system:serviceaccount:dummy:dummy@http://issuer", true);
         String token = mockToken(EXPECTED_SUBJECT, EXPECTED_ISSUER, EXPECTED_AUD, -1, -1, 60);
-        ClientAuthenticationFlowContext context = mockAuthenticationFlowContext(List.of(client), token);
+        ClientAuthenticationFlowContext context = mockAuthenticationFlowContext(List.of(clientNoDescription, client), token);
 
 
         // when

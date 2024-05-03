@@ -8,6 +8,7 @@ import org.keycloak.authentication.authenticators.client.JWTClientValidator;
 import org.keycloak.common.util.Time;
 import org.keycloak.models.ClientModel;
 import org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper;
+import org.keycloak.utils.StringUtil;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -66,6 +67,10 @@ public class ExtendedJwtClientValidator extends JWTClientValidator {
     }
 
     private boolean requestedClientPredicate(ClientModel c) {
+        if (StringUtil.isNullOrEmpty(c.getDescription())) {
+            return false;
+        }
+
         String expectedClientIssuerLine = getToken().getSubject() + "@" + getToken().getIssuer();
         return Arrays.asList(c.getDescription().split("\r\n|\n|\r"))
             .contains(expectedClientIssuerLine);
