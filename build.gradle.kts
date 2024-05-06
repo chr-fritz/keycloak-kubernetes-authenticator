@@ -19,7 +19,7 @@ val guavaVersion = "33.1.0-jre"
 val jUnitJupiterVersion = "5.10.2"
 val mockitoJunitVersion = "5.11.0"
 val assertJVersion = "3.25.3"
-val jakartaWsRsVersion = "3.1.0"
+val jakartaWsRsVersion = "4.0.0"
 val jerseyVersion = "3.1.6"
 val commonsCodecVersion = "1.17.0"
 dependencies {
