@@ -21,7 +21,7 @@ val mockitoJunitVersion = "5.12.0"
 val assertJVersion = "3.26.3"
 val jakartaWsRsVersion = "3.1.0"
 val jerseyVersion = "3.1.7"
-val commonsCodecVersion = "1.17.0"
+val commonsCodecVersion = "1.17.1"
 dependencies {
     implementation(platform("org.keycloak.bom:keycloak-adapter-bom:${keycloakVersion}"))
     implementation(platform("org.keycloak.bom:keycloak-misc-bom:${keycloakVersion}"))
