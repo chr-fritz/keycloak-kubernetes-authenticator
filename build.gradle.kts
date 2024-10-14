@@ -20,7 +20,7 @@ val jUnitJupiterVersion = "5.11.2"
 val mockitoJunitVersion = "5.14.1"
 val assertJVersion = "3.26.3"
 val jakartaWsRsVersion = "3.1.0"
-val jerseyVersion = "3.1.8"
+val jerseyVersion = "3.1.9"
 val commonsCodecVersion = "1.17.1"
 dependencies {
     implementation(platform("org.keycloak.bom:keycloak-adapter-bom:${keycloakVersion}"))
