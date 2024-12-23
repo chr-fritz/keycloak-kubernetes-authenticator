@@ -13,7 +13,7 @@ repositories {
     mavenCentral()
 }
 
-val keycloakVersion = "26.0.6"
+val keycloakVersion = "26.0.7"
 val lombokVersion = "1.18.36"
 val guavaVersion = "33.3.1-jre"
 val jUnitJupiterVersion = "5.11.3"
@@ -23,8 +23,7 @@ val jakartaWsRsVersion = "3.1.0"
 val jerseyVersion = "3.1.9"
 val commonsCodecVersion = "1.17.1"
 dependencies {
-    implementation(platform("org.keycloak.bom:keycloak-adapter-bom:${keycloakVersion}"))
-    implementation(platform("org.keycloak.bom:keycloak-misc-bom:${keycloakVersion}"))
+    implementation(platform("org.keycloak.bom:keycloak-bom-parent:${keycloakVersion}"))
     implementation(platform("org.keycloak.bom:keycloak-spi-bom:${keycloakVersion}"))
     compileOnlyApi("org.keycloak:keycloak-server-spi:${keycloakVersion}")
     compileOnlyApi("org.keycloak:keycloak-server-spi-private:${keycloakVersion}")
