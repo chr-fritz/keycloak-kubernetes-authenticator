@@ -1,3 +1,4 @@
+import org.apache.commons.lang3.StringUtils.defaultIfBlank
 import java.net.URLEncoder
 
 plugins {
@@ -97,7 +98,7 @@ publishing {
             url =
                 uri(
                     "https://maven.pkg.github.com/" + URLEncoder.encode(
-                        System.getenv("GITHUB_ACTOR"),
+                        defaultIfBlank(System.getenv("GITHUB_ACTOR"), ""),
                         "UTF-8"
                     ) + "/keycloak-kubernetes-authenticator"
                 )
