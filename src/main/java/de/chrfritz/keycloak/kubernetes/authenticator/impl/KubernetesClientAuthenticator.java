@@ -52,7 +52,7 @@ public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
 
     @Override
     public void authenticateClient(ClientAuthenticationFlowContext context) {
-        ExtendedJwtClientValidator validator = new ExtendedJwtClientValidator(context);
+        ExtendedJwtClientValidator validator = new ExtendedJwtClientValidator(context, PROVIDER_ID);
         if (!validator.clientAssertionParametersValidation()) {
             return;
         }

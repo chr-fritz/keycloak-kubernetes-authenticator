@@ -54,7 +54,7 @@ class ExtendedJwtClientValidatorTest {
             List.of(mockClient("client", "\nsystem:serviceaccount:dummy:dummy@http://issuer", isClientActive)),
             token
         );
-        ExtendedJwtClientValidator validator = new ExtendedJwtClientValidator(context);
+        ExtendedJwtClientValidator validator = new ExtendedJwtClientValidator(context, "extended-jwt-client-validator-test");
 
         assertThat(validator.clientAssertionParametersValidation()).isEqualTo(assertationParametersValid);
         if (expectedReadJwsEx != null) {

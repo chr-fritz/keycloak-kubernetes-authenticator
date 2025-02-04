@@ -30,8 +30,8 @@ public class ExtendedJwtClientValidator extends JWTClientValidator {
     private ClientModel client;
     private final int currentTime;
 
-    public ExtendedJwtClientValidator(ClientAuthenticationFlowContext context) {
-        super(context);
+    public ExtendedJwtClientValidator(ClientAuthenticationFlowContext context, String clientAuthenticatorProviderId) {
+        super(context, clientAuthenticatorProviderId);
         currentTime = Time.currentTime();
     }
 
