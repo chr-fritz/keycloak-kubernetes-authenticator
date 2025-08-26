@@ -6,7 +6,7 @@ plugins {
     `java-library`
     `maven-publish`
     id("com.palantir.git-version") version "4.0.0" // to compute the project version from Git tags and hashes
-    id("org.sonarqube") version "6.2.0.5505"
+    id("org.sonarqube") version "6.3.0.5676"
 }
 
 repositories {
