@@ -28,6 +28,12 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
+      - name: Jar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: keycloak-kubernetes-authenticator
+          path: ./build/libs/keycloak-kubernetes-authenticator.jar
+
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
