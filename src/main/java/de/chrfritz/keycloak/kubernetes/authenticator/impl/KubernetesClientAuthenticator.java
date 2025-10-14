@@ -143,7 +143,7 @@ public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
 
     @Override
     public boolean isConfigurable() {
-        return false;
+        return true;
     }
 
     @Override
