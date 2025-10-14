@@ -49,6 +49,8 @@ import static org.keycloak.authentication.AuthenticationFlowError.CLIENT_CREDENT
  */
 public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
     public static final String PROVIDER_ID = "kubernetes-jwt";
+    public static final String CUSTOM_AUDIENCE_ENABLED = "custom.audience.enabled";
+    public static final String JWK_URLS_ENABLED = "use.jwks.url";
 
     @Override
     public void authenticateClient(ClientAuthenticationFlowContext context) {
@@ -84,7 +86,7 @@ public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
             }
 
             // Allow both "issuer" or "token-endpoint" as audience
-            List<String> expectedAudiences = getExpectedAudiences(context, realm);
+            List<String> expectedAudiences = getExpectedAudiences(context, realm, client, token);
             if (!token.hasAnyAudience(expectedAudiences)) {
                 throw new TokenValidationException(
                     "Token audience doesn't match domain. Expected audiences are any of " + expectedAudiences
@@ -161,7 +163,14 @@ public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
 
     @Override
     public List<ProviderConfigProperty> getConfigPropertiesPerClient() {
-        return List.of();
+        ProviderConfigProperty customAudienceEnabled = new ProviderConfigProperty();
+        customAudienceEnabled.setName(CUSTOM_AUDIENCE_ENABLED);
+        customAudienceEnabled.setLabel("Enable Custom Audiences");
+        customAudienceEnabled.setType(ProviderConfigProperty.BOOLEAN_TYPE);
+        customAudienceEnabled.setDefaultValue("false");
+        customAudienceEnabled.setHelpText("Enable support for custom JWT audiences from client attributes (jwks.url) trimmed to base URL");
+        
+        return List.of(customAudienceEnabled);
     }
 
     @Override
@@ -185,7 +194,7 @@ public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
         }
     }
 
-    private List<String> getExpectedAudiences(ClientAuthenticationFlowContext context, RealmModel realm) {
+    private List<String> getExpectedAudiences(ClientAuthenticationFlowContext context, RealmModel realm, ClientModel client, JsonWebToken token) {
         String issuerUrl = Urls.realmIssuer(context.getUriInfo().getBaseUri(), realm.getName());
 
         String tokenUrl = OIDCLoginProtocolService.tokenUrl(context.getUriInfo().getBaseUriBuilder())
@@ -198,7 +207,46 @@ public class KubernetesClientAuthenticator extends AbstractClientAuthenticator {
             .build(realm.getName())
             .toString();
 
-        return List.of(issuerUrl, tokenUrl, parEndpointUrl, backchannelAuthenticationUrl);
+        List<String> audiences = new ArrayList<>();
+        audiences.add(issuerUrl);
+        audiences.add(tokenUrl);
+        audiences.add(parEndpointUrl);
+        audiences.add(backchannelAuthenticationUrl);
+
+        // Check if custom audience support is enabled
+        boolean customAudienceEnabled = Boolean.parseBoolean(client.getAttribute(CUSTOM_AUDIENCE_ENABLED));
+        boolean useJwksUrl = Boolean.parseBoolean(client.getAttribute(JWK_URLS_ENABLED));
+        String tokenIssuer = token.getIssuer();
+        
+        if (customAudienceEnabled && useJwksUrl && tokenIssuer != null) {
+            // Add audience from jwks.url attribute (base URL before first '/')
+            String jwksUrl = client.getAttribute("jwks.url");
+            if (jwksUrl != null && !jwksUrl.isEmpty()) {
+                // Extract the base URL by splitting on '/' and taking everything before the path
+                // Format is typically: https://host:port/path
+                // We want to extract: https://host:port
+                int pathStartIndex = jwksUrl.indexOf('/', jwksUrl.indexOf("//") + 2);
+                if (pathStartIndex != -1) {
+                    String baseUrl = jwksUrl.substring(0, pathStartIndex);
+                    if (baseUrl.equals(tokenIssuer)) {
+                        // Only add allowed audiences if the base URL matches the token issuer
+                        audiences.add(baseUrl);
+                    } else {
+                        ServicesLogger.LOGGER.debugf("Token issuer '%s' does not match base URL from jwks.url '%s'", tokenIssuer, baseUrl);
+                    }
+                } else {
+                    if (jwksUrl.equals(tokenIssuer)) {
+                        // Only add allowed audiences if the whole URL matches the token issuer
+                        audiences.add(jwksUrl);
+                    } else {
+                        ServicesLogger.LOGGER.debugf("Token issuer '%s' does not match jwks.url '%s'", tokenIssuer, jwksUrl);
+                    }
+                    // If no path found, add the whole URL
+                }
+            }
+        }
+
+        return audiences;
     }
 
     @Override
