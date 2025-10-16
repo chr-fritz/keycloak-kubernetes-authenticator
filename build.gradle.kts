@@ -14,7 +14,7 @@ repositories {
     mavenCentral()
 }
 
-val keycloakVersion = "26.4.0"
+val keycloakVersion = "26.4.1"
 val lombokVersion = "1.18.42"
 val guavaVersion = "33.5.0-jre"
 val jUnitJupiterVersion = "5.14.0"
