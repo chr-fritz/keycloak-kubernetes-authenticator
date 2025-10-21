@@ -38,6 +38,8 @@ dependencies {
 
     testImplementation(platform("org.junit:junit-bom:${jUnitJupiterVersion}"))
     testImplementation("org.junit.jupiter:junit-jupiter:${jUnitJupiterVersion}")
+    testRuntimeOnly("org.junit.platform:junit-platform-engine")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mockito:mockito-junit-jupiter:${mockitoJunitVersion}")
     testImplementation("org.assertj:assertj-core:${assertJVersion}")
     testImplementation("jakarta.ws.rs:jakarta.ws.rs-api:${jakartaWsRsVersion}")
