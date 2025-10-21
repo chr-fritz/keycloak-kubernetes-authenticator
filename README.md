@@ -4,6 +4,21 @@
 
 # Keycloak Kubernetes Client Authenticator
 
+> [!WARNING]
+>
+> As of **November 2025**, this project is **deprecated**.
+> The functionality provided by the keycloak-kubernetes-authenticator is now built into **Keycloak 26.4 and later**
+> through the new feature:
+>
+> > **Federated client authentication (preview)**:
+> > Identity providers are now able to federate client authentication. This allows clients to authenticate with SPIFFE
+> > JWT SVIDs, Kubernetes service account tokens, or tokens issued by an OpenID Connect identity provider.
+>
+> See the [Keycloak 26.4 release notes](https://www.keycloak.org/2025/09/keycloak-2640-released) for details.
+>
+> This extension will **remain compatible with Keycloak versions up to 26.3**, but **no further updates or maintenance**
+> will be provided. Please migrate to the native Keycloak functionality for future use.
+
 The Keycloak Kubernetes Client Authenticator is
 a [keycloak client authenticator](https://www.keycloak.org/docs/24.0.2/server_development/#_client_authentication) which
 allows to use kubernetes service account token as client assertation as described
@@ -17,7 +32,8 @@ token from keycloak.
 ## Configuring a client for use
 
 1. Create a new client with your desired client id and set the description
-   to `system:serviceaccount:<k8s-namespace>:<serviceAccountName>@<kubernetes-issuer-name>`: ![client description](doc/client-desc.png)
+   to
+   `system:serviceaccount:<k8s-namespace>:<serviceAccountName>@<kubernetes-issuer-name>`: ![client description](doc/client-desc.png)
 2. Select the `Kubernetes Service Account` Client Authenticator under `Credentials`
 3. Provide public key to verify the token signature:
     1. Import a JSON Web Key Set (JWKS): ![Import JWKS](doc/client-key-import.png)
