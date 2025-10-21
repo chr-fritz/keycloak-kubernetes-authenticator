@@ -10,6 +10,13 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
+    ignore:
+      - dependency-name: org.keycloak.bom:*
+        versions:
+          - ">= 26.4"
+      - dependency-name: org.keycloak:*
+        versions:
+          - ">= 26.4"
 
   - package-ecosystem: "github-actions"
     directory: "/"
