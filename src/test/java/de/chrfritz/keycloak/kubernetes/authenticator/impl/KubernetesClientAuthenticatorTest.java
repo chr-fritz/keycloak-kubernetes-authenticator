@@ -8,7 +8,9 @@ import org.keycloak.authentication.ClientAuthenticationFlowContext;
 import org.keycloak.models.ClientModel;
 
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static de.chrfritz.keycloak.kubernetes.authenticator.impl.KubernetesClientAuthenticator.PROVIDER_ID;
 import static de.chrfritz.keycloak.kubernetes.authenticator.impl.TestUtils.*;
@@ -29,6 +31,8 @@ class KubernetesClientAuthenticatorTest {
     private static final String EXPECTED_AUD = "https://localhost:8080/auth/realms/test-realm";
     private static final String EXPECTED_ISSUER = "http://issuer";
     private static final String EXPECTED_SUBJECT = "system:serviceaccount:dummy:dummy";
+    private static final String ALT_TOKEN_ISSUER = "https://kubernetes.default.svc.cluster.local";
+
     private final KubernetesClientAuthenticator authenticator = new KubernetesClientAuthenticator();
 
     @Test
@@ -188,5 +192,66 @@ class KubernetesClientAuthenticatorTest {
 
         assertThat(authenticator.getProtocolAuthenticatorMethods("dummyProtocol"))
             .isEmpty();
+    }
+
+    @Test
+    void test_AuthenticateClient_with_jwks_url_audience_success() throws URISyntaxException {
+        // given
+        Map<String, String> attributes = new HashMap<>();
+
+        attributes.put("custom.audience.enabled", "true");
+        attributes.put("use.jwks.url", "true");
+        attributes.put("jwks.url", ALT_TOKEN_ISSUER + "/openid/v1/jwks");
+
+        ClientModel client = mockClient("dummy", EXPECTED_SUBJECT + "@" + ALT_TOKEN_ISSUER, true, attributes);
+        String token = mockToken(EXPECTED_SUBJECT, ALT_TOKEN_ISSUER, ALT_TOKEN_ISSUER, -1, -1, 60);
+        ClientAuthenticationFlowContext context = mockAuthenticationFlowContext(List.of(client), token);
+
+        // when
+        authenticator.authenticateClient(context);
+
+        // then it should pass as we allow audience from jwks.url
+        verify(context, never()).failure(any(), any());
+        verify(context).success();
+    }
+
+    @Test
+    void test_AuthenticateClient_with_jwks_url_issuer_mismatch() throws URISyntaxException {
+        // given
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("custom.audience.enabled", "true");
+        attributes.put("use.jwks.url", "true");
+        attributes.put("jwks.url", "https://k8s-api:6443/openid/v1/jwks");
+        
+        ClientModel client = mockClient("dummy", EXPECTED_SUBJECT + "@" + ALT_TOKEN_ISSUER, true, attributes);
+        String token = mockToken(EXPECTED_SUBJECT, ALT_TOKEN_ISSUER, ALT_TOKEN_ISSUER, -1, -1, 60);
+        ClientAuthenticationFlowContext context = mockAuthenticationFlowContext(List.of(client), token);
+
+        // when
+        authenticator.authenticateClient(context);
+
+        // then - should fail because jwks url is not token issuer url
+        verify(context).failure(eq(INVALID_CLIENT_CREDENTIALS), any(Response.class));
+        verify(context, never()).success();
+    }
+
+    @Test
+    void test_AuthenticateClient_custom_audience_disabled_by_default() throws URISyntaxException {
+        // given
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("use.jwks.url", "true");
+        attributes.put("jwks.url", ALT_TOKEN_ISSUER + "/openid/v1/jwks");
+        // custom.audience.enabled is not set, so it should default to false
+        
+        ClientModel client = mockClient("dummy", EXPECTED_SUBJECT + "@" + ALT_TOKEN_ISSUER, true, attributes);
+        String token = mockToken(EXPECTED_SUBJECT, ALT_TOKEN_ISSUER, ALT_TOKEN_ISSUER, -1, -1, 60);
+        ClientAuthenticationFlowContext context = mockAuthenticationFlowContext(List.of(client), token);
+
+        // when
+        authenticator.authenticateClient(context);
+
+        // then - should fail because custom audiences are not enabled
+        verify(context).failure(eq(INVALID_CLIENT_CREDENTIALS), any(Response.class));
+        verify(context, never()).success();
     }
 }
