@@ -17,7 +17,7 @@ repositories {
 val keycloakVersion = "26.3.5"
 val lombokVersion = "1.18.42"
 val guavaVersion = "33.5.0-jre"
-val jUnitJupiterVersion = "6.0.0"
+val jUnitJupiterVersion = "6.0.1"
 val mockitoJunitVersion = "5.20.0"
 val assertJVersion = "3.27.6"
 val jakartaWsRsVersion = "3.1.0"
