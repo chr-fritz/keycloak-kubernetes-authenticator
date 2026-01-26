@@ -21,7 +21,7 @@ val jUnitJupiterVersion = "6.0.2"
 val mockitoJunitVersion = "5.21.0"
 val assertJVersion = "3.27.6"
 val jakartaWsRsVersion = "3.1.0"
-val jerseyVersion = "4.0.0"
+val jerseyVersion = "4.0.1"
 val commonsCodecVersion = "1.20.0"
 
 dependencies {
