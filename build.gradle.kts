@@ -5,7 +5,7 @@ plugins {
     jacoco
     `java-library`
     `maven-publish`
-    id("com.palantir.git-version") version "4.2.0" // to compute the project version from Git tags and hashes
+    id("com.palantir.git-version") version "4.3.0" // to compute the project version from Git tags and hashes
     id("org.sonarqube") version "7.2.2.6593"
 }
 
